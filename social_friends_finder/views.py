@@ -51,8 +51,9 @@ class FriendListView(TemplateView):
         friends = []
         for friend_list in self.social_friend_lists:
             fs = friend_list.existing_social_friends()
-            for f in fs:
-                friends.append(f)
+            if fs is not None:
+                for f in fs:
+                    friends.append(f)
 
         # Add friends to context
         context['friends'] = friends

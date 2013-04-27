@@ -45,21 +45,27 @@ class SocialFriendsManager(models.Manager):
         Return:
             User collection
         """
+        from django.core.cache import cache
         # Type check
         self.assert_user_is_social_auth_user(user_social_auth)
+        friend_users_cached = cache.get(user_social_auth.user.username+"SocialFriendList")
+        if friend_users_cached and friend_users_cached.exists():
+            return friend_users_cached
+        else:   
+            if not friend_ids:
+                friend_ids = self.fetch_social_friend_ids(user_social_auth)
 
-        if not friend_ids:
-            friend_ids = self.fetch_social_friend_ids(user_social_auth)
+                # Convert comma sepearated string to the list
+                if isinstance(friend_ids, basestring):
+                    friend_ids = eval(friend_ids)
 
-        # Convert comma sepearated string to the list
-        if isinstance(friend_ids, basestring):
-            friend_ids = eval(friend_ids)
-
-        # Match them with the ones on the website
-        if USING_ALLAUTH:
-            return User.objects.filter(socialaccount__uid__in=friend_ids).all()            
-        else:
-            return User.objects.filter(social_auth__uid__in=friend_ids).all()
+                # Match them with the ones on the website
+                if USING_ALLAUTH:
+                    return User.objects.filter(socialaccount__uid__in=friend_ids).all()            
+                else:
+                    friend_users = User.objects.filter(social_auth__uid__in=friend_ids).all()
+                    cache.set(user_social_auth.user.username+"SocialFriendList", friend_users)
+                    return friend_users 
 
     def get_or_create_with_social_auth(self, social_auth):
         """
