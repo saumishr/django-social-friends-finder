@@ -1,5 +1,5 @@
 from django.conf.urls import *
-from social_friends_finder.views import FriendListView, FriendListViewAll, send_app_request
+from social_friends_finder.views import FriendListView, FriendListViewAll
 from django.contrib.auth.decorators import login_required
 
 urlpatterns = patterns('social_friends_finder.views',
