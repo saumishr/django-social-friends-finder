@@ -1,0 +1,60 @@
+{#% extends "base.html" %#}
+{% load i18n %}
+{#% block title %}{% trans "Find Friends" %}{% endblock %#}
+
+<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<style>
+        li {background-color:Azure;border-bottom:1px dotted Gray}   
+        li.selected {background-color:#00A3EF;}
+</style>
+<script type="text/javascript">
+$(document).ready(function() {
+  $("li").click(function() {
+      $(this).toggleClass("selected");
+  });
+});
+</script>
+  <script src="http://connect.facebook.net/en_US/all.js">
+  </script>
+  <script>
+    FB.init({ 
+      appId:'434231519980833', cookie:true, 
+      status:true, xfbml:true 
+    });
+
+    FB.ui({ method: 'apprequests', 
+      message: 'Here is a new Requests dialog...'});
+  </script>
+{% block content %}
+{% if not friends %}
+    {% trans "No friends found" %}
+{% else %}
+<div  style="border-style:solid;border-width:medium;border-color:#00A3EF;width:600px;height:400px;overflow: auto;">
+<div id="load-feeds" style="width:560px;height: 800px;display: inline-block;margin:10px auto;">
+
+<ul>
+    {% for provider in connected_providers %}
+        {{ provider }}
+    {% endfor %}
+
+friends:
+<ul>
+  {% for provider in connected_providers %}
+      {% for friend in friends %}
+        {% for friend_info in friend %}
+          <li style="list-style-type:None;display: inline;float:left;border-width:2px;border-style:inset;padding:4px;margin:4px;">
+            {% if  provider == "facebook" %}
+            <img src={{ "http://graph.facebook.com/"|add:friend_info.id|add:"/picture" }} title='{{ friend_info.name }}'>
+          {% elif  provider == "twitter" %}
+            <img src={{ friend_info.profile_image_url }} title='{{ friend_info.name }}'>
+          {% endif %}
+          
+          </li>
+        {% endfor %}
+      {% endfor %}
+    {% endfor %}
+</ul>
+</div>
+</div>
+{% endif %}
+{% endblock %}

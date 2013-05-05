@@ -37,6 +37,26 @@ class SocialFriendsManager(models.Manager):
 
         return friend_ids
 
+    def fetch_social_friends(self, social_auth_user):
+        """
+        fetches the user's social friends from its provider
+        user is an instance of UserSocialAuth
+        returns collection of ids
+
+        this method can be used asynchronously as a background process (celery)
+        """
+
+        # Type check
+        self.assert_user_is_social_auth_user(social_auth_user)
+
+        # Get friend finder backend
+        friends_provider = SocialFriendsFinderBackendFactory.get_backend(social_auth_user.provider)
+
+        # Get friend ids
+        friends = friends_provider.fetch_friends(social_auth_user)
+
+        return friends
+
     def existing_social_friends(self, user_social_auth=None, friend_ids=None):
         """
         fetches and matches social friends
@@ -121,3 +141,26 @@ class SocialFriendList(models.Model):
 
     def existing_social_friends(self):
         return SocialFriendList.objects.existing_social_friends(self.user_social_auth, self.friend_ids)
+    def fetch_social_friend_ids(self):
+        return SocialFriendList.objects.fetch_social_friend_ids(self.user_social_auth)
+    def fetch_social_friends(self):
+        return SocialFriendList.objects.fetch_social_friends(self.user_social_auth)
+    def fetch_social_friends_info(self):
+        fs = self.fetch_social_friends()
+        friends = []
+        if fs is not None:
+            if self.user_social_auth.provider == "facebook":
+                for friend in fs['data']:
+                    friends.append({
+                                        'id':friend['id'],
+                                        'name':friend['name'],
+                                    })
+                return friends
+            elif self.user_social_auth.provider == "twitter":
+                for friend in fs:
+                    friends.append({
+                                        'id':friend.id,
+                                        'name':friend.name,
+                                        'profile_image_url':friend.profile_image_url,
+                                    })
+                return friends             
