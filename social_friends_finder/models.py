@@ -10,7 +10,6 @@ else:
 from django.contrib.auth.models import User
 from social_friends_finder.utils import SocialFriendsFinderBackendFactory
 
-
 class SocialFriendsManager(models.Manager):
 
     def assert_user_is_social_auth_user(self, user):
@@ -57,6 +56,26 @@ class SocialFriendsManager(models.Manager):
 
         return friends
 
+    def fetch_social_friends_contacts(self, social_auth_user):
+        """
+        fetches the user's social friends from its provider
+        user is an instance of UserSocialAuth
+        returns collection of ids
+
+        this method can be used asynchronously as a background process (celery)
+        """
+
+        # Type check
+        self.assert_user_is_social_auth_user(social_auth_user)
+
+        # Get friend finder backend
+        friends_provider = SocialFriendsFinderBackendFactory.get_backend(social_auth_user.provider)
+
+        # Get friend ids
+        friends = friends_provider.import_contacts(social_auth_user)
+
+        return friends
+
     def existing_social_friends(self, user_social_auth=None, friend_ids=None):
         """
         fetches and matches social friends
@@ -71,21 +90,28 @@ class SocialFriendsManager(models.Manager):
         friend_users_cached = cache.get(user_social_auth.user.username+"SocialFriendList")
         if friend_users_cached and friend_users_cached.exists():
             return friend_users_cached
-        else:   
-            if not friend_ids:
-                friend_ids = self.fetch_social_friend_ids(user_social_auth)
+        else:
+            if user_social_auth.provider == "google" or user_social_auth.provider == "google-oauth" or user_social_auth.provider == "google-oauth2":   
+                friend_emails = self.fetch_social_friends_contacts(user_social_auth)
+                friend_users = User.objects.all().filter(email__in=friend_emails)
+                cache.set(user_social_auth.user.username+"SocialFriendList", friend_users)
+                return friend_users 
+                
+            else:
+                if not friend_ids:
+                    friend_ids = self.fetch_social_friend_ids(user_social_auth)
 
-                # Convert comma sepearated string to the list
-                if isinstance(friend_ids, basestring):
-                    friend_ids = eval(friend_ids)
+                    # Convert comma sepearated string to the list
+                    if isinstance(friend_ids, basestring):
+                        friend_ids = eval(friend_ids)
 
-                # Match them with the ones on the website
-                if USING_ALLAUTH:
-                    return User.objects.filter(socialaccount__uid__in=friend_ids).all()            
-                else:
-                    friend_users = User.objects.filter(social_auth__uid__in=friend_ids).all()
-                    cache.set(user_social_auth.user.username+"SocialFriendList", friend_users)
-                    return friend_users 
+                    # Match them with the ones on the website
+                    if USING_ALLAUTH:
+                        return User.objects.filter(socialaccount__uid__in=friend_ids).all()            
+                    else:
+                        friend_users = User.objects.filter(social_auth__uid__in=friend_ids).all()
+                        cache.set(user_social_auth.user.username+"SocialFriendList", friend_users)
+                        return friend_users 
 
     def get_or_create_with_social_auth(self, social_auth):
         """

@@ -17,6 +17,9 @@ class SocialFriendsFinderBackendFactory():
         elif backend_name == 'vkontakte-oauth2':
             from social_friends_finder.backends.vkontakte_backend import VKontakteFriendsProvider
             friends_provider = VKontakteFriendsProvider()
+        elif backend_name == 'google-oauth2' or backend_name == 'google-oauth' or backend_name == 'google':
+            from social_friends_finder.backends.google_backend import GoogleFriendsProvider
+            friends_provider = GoogleFriendsProvider()
         else:
             raise NotImplementedError("provider: %s is not implemented")
 
