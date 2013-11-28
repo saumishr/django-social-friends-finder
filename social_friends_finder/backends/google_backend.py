@@ -10,7 +10,7 @@ else:
 from xml.etree import ElementTree
 from social_auth.backends import google
 import requests
-
+from django.http import HttpResponse
 # see: http://djangosnippets.org/snippets/706/
 class GoogleFriendsProvider(BaseFriendsProvider):
 
@@ -28,7 +28,7 @@ class GoogleFriendsProvider(BaseFriendsProvider):
 			tokens = social_auth_backend.tokens(user)
 			oauth_token = tokens['access_token']
 
-		response = requests.get(google.CONTACTS_URL + '?access_token=' + oauth_token)
+		response = requests.get(google.CONTACTS_URL + '?access_token=' + oauth_token + '&max-results=' + str(google.MAX_RESULTS_FOR_GOOGLE_CONTACT))
 		return self.parse_contacts(response.text)
 
 	def parse_contacts(self, contacts_xml=None):
